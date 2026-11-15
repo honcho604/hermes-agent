@@ -51,7 +51,8 @@ Use `youtube-content` instead to summarize an existing YouTube video.
 
 ## Prerequisites
 
-- Python 3.8+ (stdlib only). Runs through the `terminal` tool.
+- Python 3.8+ (stdlib only). Runs through the `terminal` tool. On native
+  Windows, run `python` (or `py -3`) wherever these docs say `python3`.
 - Optional: `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`. Anonymous Reddit
   JSON works but is rate-limited and is sometimes blocked on servers and VPNs.
   With both set, the scout uses Reddit's OAuth API.

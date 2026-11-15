@@ -447,8 +447,20 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _utf8_stdout() -> None:
+    """Print UTF-8 everywhere. Windows pipes default to the ANSI code page,
+    which can't encode the emoji that fill Reddit titles."""
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if reconfigure is not None:
+        try:
+            reconfigure(encoding="utf-8")
+        except (ValueError, OSError):
+            pass
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
+    _utf8_stdout()
     try:
         if args.command == "titles":
             keywords = [k.strip() for k in (args.keyword or "").split(",") if k.strip()]
