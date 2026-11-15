@@ -372,6 +372,16 @@ class TestScoutCli:
         assert printed.startswith("# Source brief:")
         assert out_file.read_text() == printed
 
+    def test_non_ascii_output_on_ansi_console(self, tmp_path, monkeypatch):
+        # Windows pipes default to cp1252; emoji titles must not crash the scout.
+        f = tmp_path / "listing.json"
+        f.write_text(json.dumps(_listing(_post("e1", "GTA 6 leak 🔥 Vice City"))), encoding="utf-8")
+        buf = io.BytesIO()
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(buf, encoding="cp1252"))
+        assert rs.main(["scout", "--from-file", str(f), "--format", "md"]) == 0
+        sys.stdout.flush()
+        assert "🔥" in buf.getvalue().decode("utf-8")
+
     def test_missing_file(self, capsys):
         assert rs.main(["scout", "--from-file", "/nonexistent/x.json"]) == 1
         assert json.loads(capsys.readouterr().out)["error"] == "file_not_found"
