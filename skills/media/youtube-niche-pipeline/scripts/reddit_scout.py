@@ -13,10 +13,11 @@ Commands
 Auth
 ----
 Without credentials the public ``www.reddit.com/....json`` endpoints are used.
-Reddit rate-limits and sometimes blocks anonymous traffic; set
-``REDDIT_CLIENT_ID`` + ``REDDIT_CLIENT_SECRET`` (a free "script" app at
-https://www.reddit.com/prefs/apps) to use the OAuth API instead. When Reddit is
-unreachable, save the JSON from a browser and pass ``--from-file``.
+Reddit rate-limits and often blocks this anonymous traffic (HTTP 403). The
+reliable fallback: open the same ``.json`` URL in a browser, save the page,
+and pass ``--from-file``. ``REDDIT_CLIENT_ID`` + ``REDDIT_CLIENT_SECRET``
+switch to the OAuth API, but since late 2025 Reddit only issues API
+credentials after manual approval (Responsible Builder Policy).
 
 Every command prints JSON (or Markdown with ``--format md``) to stdout. On
 failure it prints ``{"ok": false, "error": ..., "message": ...}`` and exits 1.
@@ -26,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import html
 import json
 import math
 import os
@@ -378,13 +380,15 @@ def _http_json(url: str, headers: Dict[str, str], data: Optional[bytes] = None) 
                 continue
             hint = ""
             if exc.code in (401, 403, 429):
-                hint = (" Reddit refused anonymous access — set REDDIT_CLIENT_ID and "
-                        "REDDIT_CLIENT_SECRET, or open the .json URL in a browser, save it, "
-                        "and pass --from-file.")
+                hint = (" Reddit refused the request. Open that URL in a web browser, "
+                        "save the page (Ctrl+S) as a .json file, and re-run with "
+                        "--from-file <file>. (REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET also "
+                        "work, but Reddit now issues API keys only after manual approval.)")
             raise ScoutError("http_error", f"HTTP {exc.code} from {url}.{hint}", exc.code)
         except urllib.error.URLError as exc:
             raise ScoutError("network_error", f"Could not reach {url}: {exc.reason}. "
-                             "Save the JSON in a browser and pass --from-file.")
+                             "Open the URL in a web browser, save it as .json, and pass "
+                             "--from-file <file>.")
         except json.JSONDecodeError:
             raise ScoutError("bad_payload", f"{url} did not return JSON (blocked or login wall?)")
     raise ScoutError("http_error", f"Rate limited by {url}", 429)
@@ -447,10 +451,23 @@ def _load_file(path: str) -> Any:
     p = Path(path).expanduser()
     if not p.is_file():
         raise ScoutError("file_not_found", f"No such file: {p}")
+    # utf-8-sig: Notepad on Windows may prepend a byte-order mark.
+    text = p.read_text(encoding="utf-8-sig", errors="replace")
     try:
-        return json.loads(p.read_text(encoding="utf-8"))
+        return json.loads(text)
     except json.JSONDecodeError as exc:
-        raise ScoutError("bad_payload", f"{p} is not valid JSON: {exc}")
+        # Browsers' "Save page as" can wrap the JSON in an HTML page (<pre>...</pre>).
+        m = re.search(r"<pre[^>]*>(.*?)</pre>", text, re.DOTALL | re.IGNORECASE)
+        if m:
+            try:
+                return json.loads(html.unescape(m.group(1)))
+            except json.JSONDecodeError:
+                pass
+        hint = ""
+        if "<html" in text[:4000].lower():
+            hint = (" It is a saved web page with no JSON in it — if Reddit showed a block or "
+                    "login page, log in to Reddit in the browser and save again.")
+        raise ScoutError("bad_payload", f"{p} is not valid JSON: {exc}.{hint}")
 
 
 def cmd_scout(args: argparse.Namespace) -> Tuple[Dict[str, Any], str]:

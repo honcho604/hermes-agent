@@ -382,6 +382,31 @@ class TestScoutCli:
         sys.stdout.flush()
         assert "🔥" in buf.getvalue().decode("utf-8")
 
+    def test_from_file_with_bom(self, tmp_path, capsys):
+        # Notepad on Windows can save UTF-8 with a byte-order mark.
+        f = tmp_path / "listing.json"
+        f.write_bytes(b"\xef\xbb\xbf" + json.dumps(_listing(_post("b1", "GTA 6 news"))).encode())
+        assert rs.main(["scout", "--from-file", str(f)]) == 0
+        assert json.loads(capsys.readouterr().out)["candidates"][0]["id"] == "b1"
+
+    def test_from_file_saved_as_web_page(self, tmp_path, capsys):
+        # Chrome's "Webpage, Complete" wraps the JSON in <pre>, HTML-escaped.
+        import html as _html
+        payload = _html.escape(json.dumps(_listing(_post("h1", "GTA 6 \"leak\" & rumor"))))
+        f = tmp_path / "top.json.html"
+        f.write_text(f"<html><body><pre style='x'>{payload}</pre></body></html>", encoding="utf-8")
+        assert rs.main(["scout", "--from-file", str(f)]) == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["candidates"][0]["title"] == 'GTA 6 "leak" & rumor'
+
+    def test_from_file_block_page_explains(self, tmp_path, capsys):
+        f = tmp_path / "blocked.json"
+        f.write_text("<html><body>You've been blocked by network security.</body></html>",
+                     encoding="utf-8")
+        assert rs.main(["scout", "--from-file", str(f)]) == 1
+        out = json.loads(capsys.readouterr().out)
+        assert out["error"] == "bad_payload" and "log in to Reddit" in out["message"]
+
     def test_missing_file(self, capsys):
         assert rs.main(["scout", "--from-file", "/nonexistent/x.json"]) == 1
         assert json.loads(capsys.readouterr().out)["error"] == "file_not_found"

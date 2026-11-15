@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 required_environment_variables:
   - name: REDDIT_CLIENT_ID
     prompt: "Reddit app client ID (optional)"
-    help: "Create a free 'script' app at https://www.reddit.com/prefs/apps, or skip to use anonymous access"
+    help: "Only if Reddit has approved you for API access (apply at https://www.reddit.com/prefs/apps). Skip otherwise."
     required_for: "reliable Reddit access when anonymous requests are blocked"
     optional: true
   - name: REDDIT_CLIENT_SECRET
@@ -48,9 +48,10 @@ Use `youtube-content` instead to summarize an existing YouTube video.
 
 - Python 3.8+ (stdlib only). Runs through the `terminal` tool. On native
   Windows, run `python` (or `py -3`) wherever these docs say `python3`.
-- Optional: `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`. Anonymous Reddit
-  JSON works but is rate-limited and is sometimes blocked on servers and VPNs.
-  With both set, the scout uses Reddit's OAuth API.
+- Reddit access: the scout tries Reddit's anonymous JSON first. Reddit often
+  blocks that with HTTP 403. The dependable fallback is the browser route
+  under Pitfalls. `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` switch to the
+  OAuth API, but since late 2025 Reddit issues keys only after manual approval.
 - Optional: the `tts` toolset (`text_to_speech`) for an in-house voiceover, or
   a Vidrush account. Vidrush's site advertises an MCP server. If the user has
   it configured in Hermes (`mcp_servers` in config.yaml), use its tools.
@@ -128,10 +129,14 @@ angles with potential scores." Deliver it to the user's messaging platform.
 
 ## Pitfalls
 
-- **Reddit 403/429:** anonymous access is blocked. Set the Reddit app
-  credentials. Or have the user open the `.json` URL (for example
-  `https://www.reddit.com/r/GTA6/top.json?t=day`) in a browser, save it, and
-  pass `--from-file`.
+- **Reddit 403/429 (common):** Reddit blocked the anonymous request. Don't
+  retry or work around the block. Give the user the exact URL from the error
+  message, ask them to open it in their browser, press Ctrl+S, and save it as
+  a `.json` file. Then re-run the same command with `--from-file <path>`.
+  For `brief`, the URL to save is
+  `https://www.reddit.com/comments/<id>.json?sort=top&depth=1&raw_json=1`.
+  Pages saved as "Webpage, Complete" and files with a byte-order mark both
+  load fine.
 - **Stating leaks as fact:** keep `hedge_required` posts hedged in both the
   title and the script. `check` warns when leak talk has no hedging.
 - **Leaked footage:** describe it, never show it. Use official trailers or
