@@ -263,6 +263,7 @@ const sidebars: SidebarsConfig = {
                     'user-guide/skills/bundled/media/media-songsee',
                     'user-guide/skills/bundled/media/media-spotify',
                     'user-guide/skills/bundled/media/media-youtube-content',
+                    'user-guide/skills/bundled/media/media-youtube-niche-pipeline',
                   ],
                 },
                 {

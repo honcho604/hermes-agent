@@ -116,6 +116,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | [`songsee`](/docs/user-guide/skills/bundled/media/media-songsee) | Audio spectrograms/features (mel, chroma, MFCC) via CLI. | `media/songsee` |
 | [`spotify`](/docs/user-guide/skills/bundled/media/media-spotify) | Spotify: play, search, queue, manage playlists and devices. | `media/spotify` |
 | [`youtube-content`](/docs/user-guide/skills/bundled/media/media-youtube-content) | YouTube transcripts to summaries, threads, blogs. | `media/youtube-content` |
+| [`youtube-niche-pipeline`](/docs/user-guide/skills/bundled/media/media-youtube-niche-pipeline) | Turn Reddit buzz into YouTube titles, scripts, voiceover. | `media/youtube-niche-pipeline` |
 
 ## mlops
 
